@@ -34,47 +34,15 @@ import time
 from sklearn import metrics
 from argparse import Namespace
 
-"""# Train Node2Vec"""
-
 import os.path as osp
 import sys
 from CTDNE import CTDNE
 import networkx as nx
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-def node2vec_emb(edges, d, L=20, epo=100):
-  model = Node2Vec(
-    edges,
-    embedding_dim=d,
-    walk_length=L,
-    context_size=10,
-    walks_per_node=10,
-    num_negative_samples=1,
-    p=1.0,
-    q=1.0,
-    sparse=True,
-  ).to(device)
-  loader = model.loader(batch_size=128, shuffle=True, num_workers=0)
-  optimizer = torch.optim.SparseAdam(list(model.parameters()), lr=0.01)
-
-  def train(model):
-    model.train()
-    total_loss = 0
-    for pos_rw, neg_rw in loader:
-      optimizer.zero_grad()
-      loss = model.loss(pos_rw.to(device), neg_rw.to(device))
-      loss.backward()
-      optimizer.step()
-      total_loss += loss.item()
-    return model, total_loss / len(loader)
-
-
-  for epoch in range(epo):
-    model, loss = train(model)
-
-  return model().detach().cpu().numpy()
-
-
+"""ref: 
+https://github.com/LogicJake/CTDNE/tree/master
+[Nguyen, Giang Hoang, et al. "Continuous-time dynamic network embeddings." 3rd International Workshop on Learning Representations for Big Networks (WWW BigNet). 2018.]
+"""
 def ctdne_emb(g, d, L=30, NW=200):
   CTDNE_model = CTDNE(graph, dimensions=d, walk_length=L, num_walks=NW, workers=4)
   model = CTDNE_model.fit(window=10, min_count=1, batch_words=4)  # Any keywords acceptable by gensim.Word2Vec can be passed, `diemnsions` and `workers` are automatically passed (from the CTDNE constructor)
